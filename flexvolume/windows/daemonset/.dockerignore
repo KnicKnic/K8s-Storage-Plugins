@@ -1,0 +1,5 @@
+# .dockerignore
+# Dockerfile
+**
+!download_files.ps1
+!copy_files.ps1
