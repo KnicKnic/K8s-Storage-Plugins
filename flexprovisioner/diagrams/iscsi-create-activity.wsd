@@ -1,0 +1,18 @@
+@startuml
+start
+:Get Create PV;
+:Load chap secrets;
+
+:Create Folder in Share for PV;
+if(Target for PV exists) then (yes)
+else (no)
+    : Create Target;
+endif
+: Set target security;
+if(VHD for PV exists) then (yes)
+else (no)
+    : Create VHD for PV;
+endif
+: Link VHD to target;
+end
+@enduml

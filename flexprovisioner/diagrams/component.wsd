@@ -1,0 +1,35 @@
+@startuml
+package "Kubernetes" {
+[Master] as master
+interface "Api" as api
+}
+
+
+[flex-provisioner.exe] as prov
+
+[Windows Server] as stor
+
+package "Windows Providers" as providers {
+    [CMD]
+    package "Powerhell scripts" {
+        [SMB] as smbprovider
+        [iSCSI] as iscsiprovider
+        }
+} 
+' note right of CMD : forwards to approriate powershell script
+CMD --> smbprovider
+CMD --> iscsiprovider
+smbprovider --> stor
+iscsiprovider --> stor
+
+
+
+master -left- api
+
+prov -up-> api : https://github.com/kubernetes-incubator/external-storage
+
+prov -right-> CMD : JSON CLI
+
+
+
+@enduml

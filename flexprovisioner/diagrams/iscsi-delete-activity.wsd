@@ -1,0 +1,15 @@
+@startuml
+start
+:Get Delete PV;
+if(Target for PV exists) then (yes)
+    : Disallow all connections;
+    : Remove Target;
+else (no)
+endif
+if(iSCSI Disk for PV exists) then (yes)
+    : Remove iSCSI Disk;
+else (no)
+endif
+: Delete VHD for PV;
+end
+@enduml

@@ -1,0 +1,10 @@
+@startuml
+start
+:Get Create PV;
+:Create Folder in Share for PV;
+if(Use FSRM) then (yes)
+    : Set FSRM quota;
+else (no)
+endif
+end
+@enduml
