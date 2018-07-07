@@ -19,7 +19,7 @@ function SetFsrmQuota($path, [uint64]$size, $CimSession)
 
 function supports_smb($options)
 {
-    return [bool] $options.parameters.smbLocalPath
+    return [bool] $options.parameters.smbShareName
 }
 
 # Takes in \\servername\share\path or smb://servername/share/path or //servername/share/path
@@ -47,22 +47,61 @@ function GetServerNameOrParseSharename([string] $serverName, [string]$shareName)
     return $shareName.split('\')[2]
 }
 
+function GetShareRootLocalPath([string]$ComputerName, $shareName, $credential = $null)
+{
+    $cimSession = ConstructCimsession -ComputerName $ComputerName -credential $credential
+    $share = Get-SmbShare -Name $shareName -CimSession $cimSession
+    return $share.Path
+}
+function SharePathHasFolder($path)
+{
+    return [bool]( Split-path -Path $path -parent )
+}
+function GetRootSharePath($path)
+{
+    while(SharePathHasFolder -Path $path)
+    {
+        $path = Split-path -Path $path -parent
+    }
+    return $path
+}
+
+function GetLocalSharePath($serverName, $remotePath, $credential)
+{
+    $rootSharePath = GetRootSharePath -path $remotePath
+    $shareName = $rootSharePath.split('\')[3]
+    $rootLocalPath = GetShareRootLocalPath $serverName $shareName $credential
+    $localPath = $rootLocalPath
+    if(SharePathHasFolder -path $remotePath)
+    {
+        #eat (\\servername\share\)subfolder1\..\
+        $additionalPath = $remotePath.SubString($rootSharePath.Length + 1)
+
+        $localPath = join-path $localPath $additionalPath
+    }
+    return $localPath
+}
+
 function provision_smb($options)
 {
     $name = $options.name
     $remotePath = MigrateLinuxCifsPathToWindows -smbPath $options.parameters.smbShareName
-    $localPath = $options.parameters.smbLocalPath
     $serverName = GetServerNameOrParseSharename -serverName $options.parameters.smbServerName -shareName $remotePath
     $secret = $options.parameters.smbSecret
     $credential = GetCredential
+
+    $localPath = $options.parameters.smbLocalPath
+    if(-not $localPath)
+    {
+        $localPath = GetLocalSharePath $serverName $remotePath $credential
+    }
     
-    $path = $remotePath + '\' + $name
-    $localPath = $localPath + '\' + $name
+    $path = join-path $remotePath $name
+    $localPath = join-path $localPath $name
     $requestSize = ConvertKubeSize $options.volumeClaim.spec.resources.requests.storage
 
     DebugLog "Remote path $remotePath"
     DebugLog "Local path $localPath"
-
     
     DebugLog "Requestsize $requestSize"
     EnsureRemotePathExists $localPath -ComputerName $serverName -credential $credential

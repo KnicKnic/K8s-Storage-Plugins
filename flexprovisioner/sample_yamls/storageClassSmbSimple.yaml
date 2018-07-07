@@ -1,0 +1,12 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fast
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: microsoft.com/windows-server-storage-provisioner
+parameters:
+  #start of SMB parameters
+  smbShareName: \\NMALIWA-VM-1101\f1
+  smbSecret: smb-provisioner-secret
+  #smbNoQuota: "false"

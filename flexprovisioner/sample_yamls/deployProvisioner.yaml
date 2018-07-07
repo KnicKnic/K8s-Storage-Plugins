@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microsoft-flexprovisioner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: microsoft-flexprovisioner
+  template:
+    metadata:
+      labels:
+        name: microsoft-flexprovisioner
+    spec:
+      containers:
+      - name: flexprovisioner
+        image: knicknic/flexprovisioner:v0
+        env:
+          - name: PROVISIONER_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: smb-provisioner-secret
+                key: username
+          - name: PROVISIONER_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: smb-provisioner-secret
+                key: password
+      nodeSelector:
+        beta.kubernetes.io/os: "windows"

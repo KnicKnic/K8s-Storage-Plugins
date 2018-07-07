@@ -22,8 +22,8 @@ For more info on Flexvolume see [SMB & iSCSI windows FlexVolume plugins](../flex
 Name | Meaning | Example | Mandatory 
 --- | --- | --- | ---
 smbShareName | Remote share path | \\\\FsHost1\Share1 | - [x]
-smbLocalPath | Server's folder to create volumes in | c:\shared_folder | - [x]
-smbServerName | Name provisioner uses to talk to server | FsHost1 | - [x]
+smbLocalPath | Server's folder to create volumes in | c:\shared_folder | - [ ]
+smbServerName | Name provisioner uses to talk to server | FsHost1 | - [ ]
 smbSecret | Secret name volume plugin will use to mount | smb-secret | - [x]
 smbSecret | Secret name volume plugin will use to mount | smb-secret | - [x]
 smbNoQuota | Don't use FSRM to set quotas. | "false" | - [ ] *\*default false*
