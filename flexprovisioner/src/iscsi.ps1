@@ -77,7 +77,7 @@ function provision_iscsi($options)
     $credentialParam = @{}
     if($credential) { $credentialParam.Credential = $credential}
     
-    $path = join-path $localPath "$name.vhdx"
+    $path = JoinPathNoCheck $localPath "$name.vhdx"
     $requestSize = $options.volumeClaim.spec.resources.requests.storage
     $requestSize = ConvertKubeSize $requestSize
     

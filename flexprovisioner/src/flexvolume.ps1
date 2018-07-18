@@ -19,6 +19,19 @@ Function RemotelyInvoke([string]$ComputerName, [ScriptBlock]$ScriptBlock, $Argum
     }
 }
 
+function JoinPathNoCheck([string] $left, [string] $right)
+{
+    if($left.EndsWith('\'))
+    {
+        $left = $left.TrimEnd('\')
+    }
+    if($right.StartsWith('\'))
+    {
+        $right = $right.TrimStart('\')
+    }
+    return $left + '\' + $right
+}
+
 function DeleteRemotePath([string]$pathToDelete, [string]$ComputerName, $credential = $null)
 {
     DebugLog "deleting $path"
@@ -50,10 +63,11 @@ function ConstructCimsession([string]$ComputerName, $credential)
 {
     if($credential)
     {
-        return New-CimSession -ComputerName $ComputerName -Credential $credential
+        #do not test connection, it won't work in SDN networks (inside the kubernetes cluster)
+        return New-CimSession -ComputerName $ComputerName -Credential $credential -SkipTestConnection
     }
     else {
-        return New-CimSession -ComputerName $ComputerName
+        return New-CimSession -ComputerName $ComputerName -SkipTestConnection
     }
 }
 

@@ -77,7 +77,7 @@ function GetLocalSharePath($serverName, $remotePath, $credential)
         #eat (\\servername\share\)subfolder1\..\
         $additionalPath = $remotePath.SubString($rootSharePath.Length + 1)
 
-        $localPath = join-path $localPath $additionalPath
+        $localPath = JoinPathNoCheck $localPath $additionalPath
     }
     return $localPath
 }
@@ -96,8 +96,8 @@ function provision_smb($options)
         $localPath = GetLocalSharePath $serverName $remotePath $credential
     }
     
-    $path = join-path $remotePath $name
-    $localPath = join-path $localPath $name
+    $path = JoinPathNoCheck $remotePath $name
+    $localPath = JoinPathNoCheck $localPath $name
     $requestSize = ConvertKubeSize $options.volumeClaim.spec.resources.requests.storage
 
     DebugLog "Remote path $remotePath"
