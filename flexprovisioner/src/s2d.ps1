@@ -1,58 +1,65 @@
-function CreateShare(
+
+$ClusterSecrets = @('CLUSTER_USERNAME',
+'CLUSTER_PASSWORD' )
+
+function CreateDisk(
     [string] $name,
     [uint64] $requestSize,
     [string] $clustername,
-    $cimsession,
-    [string] $shareServer,
-    [ValidateSet("CSVFS_ReFS","CSVFS_NTFS")] 
+    [string] $clusterusername,
+    [string] $clusterpassword,
     [string] $fsType,
-    [string] $storagePoolFriendlyName,
-    [string[]] $storageTierFriendlyNames,
-    [string[]] $storageTierRatios,
-    [string[]] $fullAccessUsers
+    [string] $storagePoolFriendlyName
 )
 {
-    $storageTierFriendlyNames = $storageTierFriendlyNames -split ","
-    if(-not $storageTierRatios){
-        $storageTierRatios = "1"
-    }
-    else {
-        $storageTierRatios = $storageTierRatios -split ","        
-    }
-    $storageTierSizes = $storageTierRatios | %{[uint64] (([double]$_) * $requestSize) }
+    $s = {
+        $name = $Using:name
+        $fsType = $Using:fsType
+        $storagePoolFriendlyName = $Using:storagePoolFriendlyName
+        $requestSize = $Using:requestSize
+        $v = ""
+        try{
+            #get-volume -FileSystemLabel $name -CimSession $session -ErrorAction Stop
+            $v = Get-VirtualDisk -FriendlyName $name -ErrorAction Stop   2>&1
+            #ensure that there is a volume on the partition
+            $exists = $v |  get-disk | %{( $_ | Get-Partition )[1]} | Get-Volume 
+            if(-not $exists)
+            {
+                throw "no volume"
+            }
+        }catch{
+            $v = New-Volume -FriendlyName $name -FileSystem $fsType -StoragePoolFriendlyName $storagePoolFriendlyName -size $requestSize  -ErrorAction SilentlyContinue     2>&1 
+        }
+        $group =""
+        try{            
+            $group = get-clustergroup $name   -ErrorAction Stop   2>&1
+        }catch{  
+            $group = add-clustergroup $name
+        }
 
-    try{
-        #get-volume -FileSystemLabel $name -CimSession $session -ErrorAction Stop
-        $v = Get-VirtualDisk -FriendlyName $name -CimSession $session -ErrorAction Stop
-        #ensure that there is a volume on the partition
-        $empty = $v |  get-disk | %{( $_ | Get-Partition )[1]} | Get-Volume | GetFirst -message "volume wasn't created"
-    }catch{
-        $v = New-Volume -FriendlyName $name -CimSession $session -FileSystem $fsType -StoragePoolFriendlyName $storagePoolFriendlyName -StorageTierFriendlyNames $storageTierFriendlyNames -StorageTierSizes $storageTierSizes -ErrorAction SilentlyContinue     2>&1 
+        $res = get-clusterresource "Cluster Virtual Disk ($name)"
+        $out = $res | move-clusterresource -group $group 
     }
-
-    $shares = Get-SmbShare -CimSession $cimSession -ScopeName $shareServer -ErrorAction Stop 2>&1
-    $share = $shares | ?{$_.Name -eq $name}
-    if(-not $share)
-    {
-        $v = Get-VirtualDisk -FriendlyName $name -CimSession $session -ErrorAction Stop | GetFirst -message "couldnt find volume named $name"
-        #get partition that holds CSV
-        #$csvpath = ($v | get-disk | Get-ClusterSharedVolume -cluster $clustername).SharedVolumeInfo[0].FriendlyVolumeName
-        $partition = ($v | get-disk | get-partition )[1]
-        $csvPath = $partition.AccessPaths | ?{$_.contains("ClusterStorage")}
-        $share = New-SmbShare -Name $name -Path $csvpath -ScopeName $shareServer -CimSession $session -FullAccess $fullAccessUsers -ErrorAction Stop 2>&1
-    }
+    
+    
+    $password = ConvertTo-SecureString -String $clusterpassword  -AsPlainText -Force
+    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $clusterusername, $password 
+    invoke-command -ComputerName $clustername  -Credential $cred -ScriptBlock $s
 }
 
-function RemoveShare([string]$shareServer, [string]$name, $cimSession)
+function RemoveShare([string]$cluster,[string]$name, [string]$clusterusername, [string]$clusterpassword)
 {
-    $shares = Get-SmbShare -CimSession $cimSession -ScopeName $shareServer -ErrorAction Stop 2>&1
-    $share = $shares | ?{$_.Name -eq $name}
-    if($share)
-    {
-        Remove-SmbShare -CimSession $cimSession -ScopeName $shareServer -Name $name -Force -ErrorAction Stop 2>&1
-    }
+    $s = {
+        try{
 
-    Get-VirtualDisk -CimSession $cimSession -FriendlyName $name | Remove-VirtualDisk -Confirm:$false
+        Get-VirtualDisk -FriendlyName $Using:name -ErrorAction Stop   2>&1 | Remove-VirtualDisk -Confirm:$false -ErrorAction Stop   2>&1 | out-null
+        }catch{}
+        try{Remove-ClusterGroup $Using:name -Force -RemoveResources  -ErrorAction Stop   2>&1 | out-null }catch{}
+    }
+    $password = ConvertTo-SecureString -String $clusterpassword  -AsPlainText -Force
+    $cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $clusterusername, $password 
+    invoke-command -ComputerName $cluster  -Credential $cred -ScriptBlock $s
+
 }
 
 function supports_s2d($options)
@@ -63,54 +70,43 @@ function supports_s2d($options)
 function provision_s2d($options)
 {
     $serverName = $options.parameters.s2dServerName 
-    $shareServer = $options.parameters.s2dShareServer
-    $secret = $options.parameters.smbSecret
     $name = $options.name
     $requestSize = ConvertKubeSize $options.volumeClaim.spec.resources.requests.storage
     $storagePoolFriendlyName = $options.parameters.s2dStoragePoolFriendlyName
     $fsType = $options.parameters.s2dFsType
-    $storageTierFriendlyNames = $options.parameters.s2dStorageTierFriendlyNames
-    $storageTierRatios = $options.parameters.s2dStorageTierRatios -split ","
-    $fullAccessUsers = $options.parameters.s2dFullAccessUsers -split ","
+ 
 
-    $path = '\\' + $shareServer + '\' + $name
-
-    if(-not $serverName)
-    {
-        $serverName = $shareServer
-    }
-    $session = New-CimSession -ComputerName $servername 
-    CreateShare -name $name `
+    $secrets = LoadSecrets -secrets $ClusterSecrets
+    CreateDisk -name $name `
                 -requestSize $requestSize `
                 -clustername $serverName `
-                -CimSession $session `
-                -shareServer $shareServer `
+                -clusterusername $secrets['CLUSTER_USERNAME'] `
+                -clusterpassword $secrets['CLUSTER_PASSWORD'] `
                 -fsType $fsType `
-                -storagePoolFriendlyName $storagePoolFriendlyName `
-                -storageTierFriendlyNames $storageTierFriendlyNames `
-                -storageTierRatios $storageTierRatios `
-                -fullAccessUsers $fullAccessUsers
+                -storagePoolFriendlyName $storagePoolFriendlyName 
                         
     $ret = @{"metadata" = @{
                 "labels" =@{
-                    "proto" = "smb" } }; 
+                    "proto" = "pdr" } }; 
             "spec"= @{
                 "flexVolume" = @{
-                    "driver" = "microsoft.com/smb.cmd"; 
-                    "secretRef" = @{
-                        "name" = $secret };
+                    "driver" = "microsoft.com/wsfc-pdr.cmd";
                     "options" = @{
-                        "source" = $path;
-                        "s2dServerName" = $serverName;
-                        "s2dShareServer"= $shareServer; } } } }
+                        "groupName" = $name;
+                        "clusterName" = $serverName } } } }
                         
     return $ret
 }
 
 function delete_s2d($options)
 {
+
+    $secrets = LoadSecrets($ClusterSecrets)
+    $clusterName =  $options.volume.spec.flexVolume.options.clusterName
+    
     RemoveShare `
-        -shareServer $options.volume.spec.flexVolume.options.s2dShareServer `
+        -cluster $clusterName `
         -name $options.volume.metadata.name `
-        -cimSession $(New-CimSession $options.volume.spec.flexVolume.options.s2dServerName)
+        -clusterusername $secrets['CLUSTER_USERNAME'] `
+        -clusterpassword $secrets['CLUSTER_PASSWORD'] 
 }

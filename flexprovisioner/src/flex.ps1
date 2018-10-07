@@ -82,7 +82,9 @@ function delete_command($options)
     }
     else 
     {
-        if($options.volume.spec.flexVolume.options.s2dShareServer)
+        $isS2D = $false
+        try{$isS2D = $options.volume.metadata.labels.proto -eq "pdr"}catch{}
+        if($isS2D)
         {
             return delete_s2d $options        
         }
