@@ -5,6 +5,9 @@ Here are some scripts sample scripts that will work with external flex provision
 
 For more info on Flexvolume see [SMB & iSCSI windows FlexVolume plugins](../flexvolume/windows)
 
+## Requirements
+Remote powershell needs to be enabled.
+
 ## Deploying
 * Build flex-provisioner.exe
      * See [build](build)
