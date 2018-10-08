@@ -8,6 +8,7 @@ function CreateDisk(
     [string] $clustername,
     [string] $clusterusername,
     [string] $clusterpassword,
+    [string] $ResiliencySettingName,
     [string] $fsType,
     [string] $storagePoolFriendlyName
 )
@@ -28,7 +29,12 @@ function CreateDisk(
                 throw "no volume"
             }
         }catch{
-            $v = New-Volume -FriendlyName $name -FileSystem $fsType -StoragePoolFriendlyName $storagePoolFriendlyName -size $requestSize  -ErrorAction SilentlyContinue     2>&1 
+            $options = @{}
+            if($ResiliencySettingName)
+            {
+                $options["-ResiliencySettingName"] = $ResiliencySettingName
+            }
+            $v = New-Volume -FriendlyName $name -FileSystem $fsType -StoragePoolFriendlyName $storagePoolFriendlyName -size $requestSize @options -ErrorAction SilentlyContinue     2>&1 
         }
         $group =""
         try{            
@@ -74,6 +80,7 @@ function provision_s2d($options)
     $requestSize = ConvertKubeSize $options.volumeClaim.spec.resources.requests.storage
     $storagePoolFriendlyName = $options.parameters.s2dStoragePoolFriendlyName
     $fsType = $options.parameters.s2dFsType
+    $ResiliencySettingName =  $options.parameters.s2dResiliencySettingName
  
 
     $secrets = LoadSecrets -secrets $ClusterSecrets
@@ -82,6 +89,7 @@ function provision_s2d($options)
                 -clustername $serverName `
                 -clusterusername $secrets['CLUSTER_USERNAME'] `
                 -clusterpassword $secrets['CLUSTER_PASSWORD'] `
+                -ResiliencySettingName $ResiliencySettingName `
                 -fsType $fsType `
                 -storagePoolFriendlyName $storagePoolFriendlyName 
                         
