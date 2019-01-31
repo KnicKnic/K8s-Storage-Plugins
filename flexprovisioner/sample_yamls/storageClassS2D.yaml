@@ -7,7 +7,10 @@ metadata:
 provisioner: microsoft.com/windows-server-storage-provisioner
 parameters:
   #s2dShareServer: nmaliwa-win19-4
-  s2dServerName: nmaliwa-win19-4
+  s2dServerName: $
+  # specifying just $ for s2dServerName allows it to be read from environment variable $env:CLUSTER_NAME
+  # this is useful if you want to use downard api to just use the host computer
+  # 
   #FS should be CSVFS_NTFS or CSVFS_ReFS (CSVFS_ReFS will reserver a chunk for its own use (600mb on 1gb))
   # Currently Only Support CSVFS_NTFS & CSVFS_REFS
   s2dFsType: NTFS

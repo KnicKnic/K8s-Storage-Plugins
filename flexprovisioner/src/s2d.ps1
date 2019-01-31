@@ -73,9 +73,19 @@ function supports_s2d($options)
     return [bool] $options.parameters.s2dStoragePoolFriendlyName
 }
 
+function translate_servername($servername)
+{
+    if($servername -eq '$')
+    {
+        $servername = $env:CLUSTER_NAME
+    }
+    $servername
+}
+
 function provision_s2d($options)
 {
     $serverName = $options.parameters.s2dServerName 
+    $translatedName = translate_servername $serverName
     $name = $options.name
     $requestSize = ConvertKubeSize $options.volumeClaim.spec.resources.requests.storage
     $storagePoolFriendlyName = $options.parameters.s2dStoragePoolFriendlyName
@@ -86,7 +96,7 @@ function provision_s2d($options)
     $secrets = LoadSecrets -secrets $ClusterSecrets
     CreateDisk -name $name `
                 -requestSize $requestSize `
-                -clustername $serverName `
+                -clustername $translatedName `
                 -clusterusername $secrets['CLUSTER_USERNAME'] `
                 -clusterpassword $secrets['CLUSTER_PASSWORD'] `
                 -ResiliencySettingName $ResiliencySettingName `
@@ -108,9 +118,8 @@ function provision_s2d($options)
 
 function delete_s2d($options)
 {
-
     $secrets = LoadSecrets($ClusterSecrets)
-    $clusterName =  $options.volume.spec.flexVolume.options.clusterName
+    $clusterName =  translate_servername $options.volume.spec.flexVolume.options.clusterName
     
     RemoveShare `
         -cluster $clusterName `
