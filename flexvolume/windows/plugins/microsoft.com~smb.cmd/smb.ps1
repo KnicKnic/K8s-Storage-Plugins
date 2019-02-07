@@ -30,21 +30,7 @@ function init()
 
 function mount_command([string]$path, $options)
 {  
-    $passPlain = Base64Decode $($options.'kubernetes.io/secret/password')
-    $User = Base64Decode $($options.'kubernetes.io/secret/username')
     $remoteP = $options.source
-    $remoteP = MigrateLinuxCifsPathToWindows -smbPath $remoteP
-
-    DebugLog  $passPlain
-    DebugLog  $User
-
-    Log  $remoteP 
-   
-    $Credential = ConstructCredential -username $User -passPlain $passPlain
-  
-    Log  "smbGlobal"
-    $s = New-SmbGlobalMapping  -RemotePath $remoteP -Credential $Credential 2>&1
-    Log  $s
   
     MakeSymLink $path $remoteP
 }

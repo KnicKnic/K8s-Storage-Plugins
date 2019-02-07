@@ -39,22 +39,16 @@ function provision_smb($options)
 
     
     DebugLog "Requestsize $requestSize"
-    EnsureRemotePathExists $localPath -ComputerName $serverName
-        
-    if($options.parameters.smbNoQuota -ne "true")
+    #new-vhdx
+    $vhd =  $remotePath + '\' + $name + '.vhdx'
+    
+    $pathExists = test-path $vhd
+    if(-not $pathExists)
     {
-        $fsrmPath = $localPath
-        DebugLog "applying fsrmquota to path $fsrmPath on $serverName"
-        try {
-            # if we throw assume that the fsrm already created the quota and verify by doing a set
-            $empty = NewFsrmQuota -Path $fsrmPath -Size $requestSize -ComputerName $serverName
-        }
-        catch {
-            $empty = SetFsrmQuota -Path $fsrmPath -Size $requestSize -ComputerName $serverName
-        }
-        DebugLog "applied fsrmquota"
-        DebugLog $empty
+        $a = runhcs.exe create-scratch --destpath $vhd 2>&1 
+	DebugLog $a
     }
+
     DebugLog "made directory"
                         
     $ret = @{"metadata" = @{
@@ -63,10 +57,8 @@ function provision_smb($options)
             "spec"= @{
                 "flexVolume" = @{
                     "driver" = "microsoft.com/smb.cmd"; 
-                    "secretRef" = @{
-                        "name" = $secret };
                     "options" = @{
-                        "source" = $path;
+                        "source" = $vhd;
                         "localPath" = $localPath;
                         "serverName"= $serverName; } } } }
                         
@@ -74,7 +66,11 @@ function provision_smb($options)
 }
 
 function delete_smb($options)
-{
-    $serverName = $options.volume.spec.flexVolume.options.serverName
-    DeleteRemotePath $options.volume.spec.flexVolume.options.localPath -ComputerName $serverName    
+{   
+     $vhd = $options.volume.spec.flexVolume.options.source
+    $pathExists = test-path $vhd
+    if($pathExists )
+    {
+    	#del  $vhd
+    }
 }
