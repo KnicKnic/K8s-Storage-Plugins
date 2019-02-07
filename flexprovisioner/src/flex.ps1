@@ -3,6 +3,7 @@ $global:ErrorActionPreference = [System.Management.Automation.ActionPreference]:
 . $PSScriptRoot\flexvolume.ps1
 . $PSScriptRoot\iscsi.ps1
 . $PSScriptRoot\smb.ps1
+. $PSScriptRoot\s2d.ps1
 
 function init()
 {
@@ -17,7 +18,14 @@ function delete_command($options)
     }
     else 
     {
-        return delete_smb $options        
+        if($options.volume.spec.flexVolume.options.s2dShareServer)
+        {
+            return delete_s2d $options        
+        }
+        else
+        {
+            return delete_smb $options           
+        }
     }
 }
 
@@ -29,6 +37,10 @@ function provision_command($options)
     if($noReadWriteMany -and $(supports_iscsi $options))
     {
         return provision_iscsi $options
+    }
+    elseif (supports_s2d $options)
+    {
+        return provision_s2d $options        
     }
     elseif (supports_smb $options)
     {
