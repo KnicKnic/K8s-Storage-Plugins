@@ -2,7 +2,7 @@ function CreateShare(
     [string] $name,
     [uint64] $requestSize,
     [string] $clustername,
-    $cimsession,
+    $cimSession,
     [string] $shareServer,
     [ValidateSet("CSVFS_ReFS","CSVFS_NTFS")] 
     [string] $fsType,
@@ -22,24 +22,24 @@ function CreateShare(
     $storageTierSizes = $storageTierRatios | %{[uint64] (([double]$_) * $requestSize) }
 
     try{
-        #get-volume -FileSystemLabel $name -CimSession $session -ErrorAction Stop
-        $v = Get-VirtualDisk -FriendlyName $name -CimSession $session -ErrorAction Stop
+        #get-volume -FileSystemLabel $name -CimSession $cimSession -ErrorAction Stop
+        $v = Get-VirtualDisk -FriendlyName $name -CimSession $cimSession -ErrorAction Stop
         #ensure that there is a volume on the partition
         $empty = $v |  get-disk | %{( $_ | Get-Partition )[1]} | Get-Volume | GetFirst -message "volume wasn't created"
     }catch{
-        $v = New-Volume -FriendlyName $name -CimSession $session -FileSystem $fsType -StoragePoolFriendlyName $storagePoolFriendlyName -StorageTierFriendlyNames $storageTierFriendlyNames -StorageTierSizes $storageTierSizes -ErrorAction SilentlyContinue     2>&1 
+        $v = New-Volume -FriendlyName $name -CimSession $cimSession -FileSystem $fsType -StoragePoolFriendlyName $storagePoolFriendlyName -StorageTierFriendlyNames $storageTierFriendlyNames -StorageTierSizes $storageTierSizes -ErrorAction SilentlyContinue     2>&1 
     }
 
     $shares = Get-SmbShare -CimSession $cimSession -ScopeName $shareServer -ErrorAction Stop 2>&1
     $share = $shares | ?{$_.Name -eq $name}
     if(-not $share)
     {
-        $v = Get-VirtualDisk -FriendlyName $name -CimSession $session -ErrorAction Stop | GetFirst -message "couldnt find volume named $name"
+        $v = Get-VirtualDisk -FriendlyName $name -CimSession $cimSession -ErrorAction Stop | GetFirst -message "couldnt find volume named $name"
         #get partition that holds CSV
         #$csvpath = ($v | get-disk | Get-ClusterSharedVolume -cluster $clustername).SharedVolumeInfo[0].FriendlyVolumeName
         $partition = ($v | get-disk | get-partition )[1]
         $csvPath = $partition.AccessPaths | ?{$_.contains("ClusterStorage")}
-        $share = New-SmbShare -Name $name -Path $csvpath -ScopeName $shareServer -CimSession $session -FullAccess $fullAccessUsers -ErrorAction Stop 2>&1
+        $share = New-SmbShare -Name $name -Path $csvpath -ScopeName $shareServer -CimSession $cimSession -FullAccess $fullAccessUsers -ErrorAction Stop 2>&1
     }
 }
 
@@ -79,11 +79,12 @@ function provision_s2d($options)
     {
         $serverName = $shareServer
     }
-    $session = New-CimSession -ComputerName $servername 
+    $credential = GetCredential
+    $cimsession = ConstructCimsession -ComputerName $serverName -credential $credential
     CreateShare -name $name `
                 -requestSize $requestSize `
                 -clustername $serverName `
-                -CimSession $session `
+                -CimSession $cimsession `
                 -shareServer $shareServer `
                 -fsType $fsType `
                 -storagePoolFriendlyName $storagePoolFriendlyName `
@@ -109,8 +110,10 @@ function provision_s2d($options)
 
 function delete_s2d($options)
 {
+    $credential = GetCredential
+    $cimsession = ConstructCimsession -ComputerName $options.volume.spec.flexVolume.options.s2dServerName -credential $credential
     RemoveShare `
         -shareServer $options.volume.spec.flexVolume.options.s2dShareServer `
         -name $options.volume.metadata.name `
-        -cimSession $(New-CimSession $options.volume.spec.flexVolume.options.s2dServerName)
+        -cimSession $cimsession
 }
