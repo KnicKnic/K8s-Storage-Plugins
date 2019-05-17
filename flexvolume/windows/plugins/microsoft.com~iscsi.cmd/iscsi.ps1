@@ -203,6 +203,67 @@ Function CreateVolumeIfNecessary($disk, $fsType)
         New-Volume -Disk $disk -FileSystem $fsType -FriendlyName $FriendlyDiskName | Out-Null
     }
 }
+# We should SetRootWriteableAll only if it is unmodified
+Function SetRootWriteableAll($disk, $fsType)
+{    
+    $volumes = GetVolumesForDisk $disk
+    $volume = ($volumes | ? {$_.FileSystemType -eq $fsType})| GetFirst "Could not find volume of type $fsType in volume $volume"
+    
+    #volume paths come with prerequisite trailing '\'
+    $volumePath = $volume.path
+
+    #using .net instead of powershell due to bugs loading volume guid paths (\\?\Volume{b01c74e7-9047-465f-af5d-28fc67c6726a}\)    
+    $dirInfo = New-Object -TypeName System.IO.DirectoryInfo -ArgumentList @($volumePath)
+
+    $hasVisibleFolder = $false
+    foreach( $folder in $dirInfo.GetDirectories()) {
+        if(-not $folder.Attributes.HasFlag([System.IO.FileAttributes]::Hidden)){
+            $hasVisibleFolder = $true
+            break
+        }
+    }
+
+    $hasVisibleFile = $false
+    foreach( $file in $dirInfo.GetFiles()) {
+        if(-not $file.Attributes.HasFlag([System.IO.FileAttributes]::Hidden)){
+            $hasVisibleFile = $true
+            break
+        }
+    }
+
+    if($hasVisibleFolder -eq $false -and $hasVisibleFile -eq $false ){
+        $acl = [System.IO.Directory]::GetAccessControl($volumePath)
+        $rules = $acl.Access
+        foreach($rule in $rules)
+        {
+            $empty = $acl.RemoveAccessRule($rule)
+        }
+        foreach($accessRule in $rules){
+            if($accessRule.PropagationFlags -eq [System.Security.AccessControl.PropagationFlags]::InheritOnly){
+                try{
+                    $newRule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList @(
+                        $accessRule.IdentityReference,
+                        $accessRule.FileSystemRights,
+                        $accessRule.InheritanceFlags,
+                        [System.Security.AccessControl.PropagationFlags]::None,
+                        $accessRule.AccessControlType
+                    )
+                    $acl.AddAccessRule($newRule)
+                }
+                #apparently I cannot set  rule FileSystemRights  : 268435456
+                # so catch and set the old one
+                catch{
+                    $acl.AddAccessRule($accessRule)
+                }
+            }
+            else {
+                $acl.AddAccessRule($accessRule)
+            }            
+        }
+        
+        [System.IO.Directory]::SetAccessControl($volumePath, $acl)
+    }
+}
 
 Function CountCharInString($str, $char)
 {
@@ -395,6 +456,7 @@ function mount_command_with_options(
             
             $disk = GetDiskByNumber $diskNumber
             CreateVolumeIfNecessary $disk $fsType
+            SetRootWriteableAll $disk $fsType
             RegisterDisk $diskNumber $prWrite
         }
         elseif(($reservation.key -eq $prFmt))
@@ -413,6 +475,7 @@ function mount_command_with_options(
             }
             $disk = GetDiskByNumber $diskNumber
             CreateVolumeIfNecessary $disk $fsType
+            SetRootWriteableAll $disk $fsType
             RegisterDisk $diskNumber $prWrite
         }
         else
