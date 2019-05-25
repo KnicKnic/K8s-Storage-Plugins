@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: copy-microsoft-flexvolume-plugins-set
+spec:
+  selector:
+    matchLabels:
+      name: copy-microsoft-flexvolume-plugins-set
+  template:
+    metadata:
+      labels:
+        name: copy-microsoft-flexvolume-plugins-set
+    spec:
+      containers:
+      - name: sleep
+        image: microsoft/powershell:nanoserver
+        command: ["C:\\Program Files\\PowerShell\\pwsh.exe"]
+        args: ["-command", "while($true){sleep 2147483}"]
+      initContainers:
+      - name: init
+        image: knicknic/flexvolume-plugins-copy:v0.0.2
+        volumeMounts:
+        - mountPath: /dest
+          name: plugin-disk
+      volumes:
+        - name: plugin-disk
+          hostPath:
+           path: "C:\\usr\\libexec\\kubernetes\\kubelet-plugins\\volume\\exec"
+      nodeSelector:
+        beta.kubernetes.io/os: "windows"

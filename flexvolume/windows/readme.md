@@ -42,6 +42,8 @@ To get logs for the plugin run `Get-EventLog -LogName Application -Source Kube* 
     * Provides fencing through the use of SCSI Persistent Reservations
 
 ## Folder structure
+* daemonset
+    * A daemonset that will help you auto deploy the plugins
 * plugins/microsoft.com~iscsi.cmd
     * All powershell files needed for iscsi plugin
     * When deploying must add iscsiHelper.exe
