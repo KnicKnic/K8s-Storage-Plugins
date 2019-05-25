@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: sleep
-        image: microsoft/powershell:nanoserver
+        image: mcr.microsoft.com/powershell:nanoserver-1809
         command: ["C:\\Program Files\\PowerShell\\pwsh.exe"]
         args: ["-command", "while($true){sleep 2147483}"]
       initContainers:

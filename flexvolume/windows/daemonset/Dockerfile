@@ -1,6 +1,6 @@
 # escape=`
 
-from microsoft/powershell:nanoserver as downloaded_files
+from mcr.microsoft.com/powershell:nanoserver-1809 as downloaded_files
 
 copy ./download_files.ps1 c:/work/download_files.ps1
 WORKDIR c:/work
@@ -8,7 +8,7 @@ WORKDIR c:/work
 RUN C:\"Program Files"\PowerShell\pwsh.exe -file c:\work\download_files.ps1
 
 
-from microsoft/powershell:nanoserver
+from mcr.microsoft.com/powershell:nanoserver-1809
 copy ./copy_files.ps1 c:/work/
 copy --from=downloaded_files /download/ /src/
 

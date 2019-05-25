@@ -1,7 +1,7 @@
 # escape=`
 
 # Use the latest Windows Server Core image.
-ARG FROM_IMAGE=microsoft/windowsservercore:latest
+ARG FROM_IMAGE=mcr.microsoft.com/windows/servercore
 FROM ${FROM_IMAGE}
 
 # Copy our supporting files.

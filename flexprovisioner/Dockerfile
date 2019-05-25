@@ -1,4 +1,4 @@
-FROM microsoft/windowsservercore:1803
+FROM mcr.microsoft.com/windows/servercore:1809
 copy ./src/* /provisioner/
 copy ./build/flex-provisioner.exe /provisioner/
 

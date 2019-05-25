@@ -7,7 +7,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: smb
-    image: microsoft/nanoserver
+    image: mcr.microsoft.com/powershell:nanoserver-1809
     command: ["C:\\Windows\\System32\\cmd.exe"]
     args: ["/C", "echo", "0", ">", "c:\\d\\smb_test.txt"]
     volumeMounts:
