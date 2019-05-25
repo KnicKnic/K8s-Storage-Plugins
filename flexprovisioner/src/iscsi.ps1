@@ -66,7 +66,7 @@ function provision_iscsi($options)
     $portals = $options.parameters.iscsiPortals
     $targetPortal = $options.parameters.iscsiTargetPortal
     
-    $path = join-path $localPath "$name.vhdx"
+    $path = JoinPathNoCheck $localPath "$name.vhdx"
     $requestSize = $options.volumeClaim.spec.resources.requests.storage
     $requestSize = ConvertKubeSize $requestSize
     
