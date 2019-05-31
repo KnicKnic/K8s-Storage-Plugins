@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: copy-microsoft-flexvolume-plugins-set
+  namespace: storage
 spec:
   selector:
     matchLabels:
@@ -18,13 +19,14 @@ spec:
         args: ["-command", "while($true){sleep 2147483}"]
       initContainers:
       - name: init
-        image: knicknic/flexvolume-plugins-copy:v0.0.2
+        image: knicknic/flexvolume-plugins-copy:v0.0.2.9
+        imagePullPolicy: Always
         volumeMounts:
         - mountPath: /dest
           name: plugin-disk
       volumes:
         - name: plugin-disk
           hostPath:
-           path: "C:\\usr\\libexec\\kubernetes\\kubelet-plugins\\volume\\exec"
+           path: "C:\\k\\volumeplugins"
       nodeSelector:
         beta.kubernetes.io/os: "windows"

@@ -1,0 +1,6 @@
+# .dockerignore
+# Dockerfile
+**
+!copy_files.ps1
+!plugins/*
+!microsoft-windows-plugin-version.txt
