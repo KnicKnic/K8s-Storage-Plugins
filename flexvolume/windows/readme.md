@@ -43,7 +43,7 @@ To get logs for the plugin run `Get-EventLog -LogName Application -Source Kube* 
     * Plugin allows you to consume iSCSI disks.
     * Provides fencing through the use of SCSI Persistent Reservations
 
-* WSFC-PDR - Failover Cluster Physical Disk Resource
+* WSFC-PDR - Failover Cluster Physical Disk Resource (Alpha)
     * Currently plugin does not examine access modes or readonly flag **TODO**
     * The disk should be in its own group with no other resources
     * Install the failover cluster cmdlets
