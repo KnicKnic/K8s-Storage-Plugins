@@ -22,6 +22,8 @@ The default plugin folder location in a Windows kubernetes worker node is C:\usr
         * copy produced iscsiHelper.exe into plugin folder/microsoft.com~iscsi.cmd/
     * Optionally create a pr.txt file in the current working directory that corresponds to that node's SCSI PR to use
         * If none is created a random one will be generated
+* WSFC-PDR - Failover Cluster Physical Disk Resource
+    * Copy plugins/microsoft.com~wsfc-pdr.cmd into the plugin folder
 
 See https://github.com/andyzhangx/Demo/tree/master/windows/flexvolume for more info.
 
@@ -41,12 +43,20 @@ To get logs for the plugin run `Get-EventLog -LogName Application -Source Kube* 
     * Plugin allows you to consume iSCSI disks.
     * Provides fencing through the use of SCSI Persistent Reservations
 
+* WSFC-PDR - Failover Cluster Physical Disk Resource
+    * Currently plugin does not examine access modes or readonly flag **TODO**
+    * The disk should be in its own group with no other resources
+    * Install the failover cluster cmdlets
+    * Run kubelet with an account that is administrator in the failover cluster
+
 ## Folder structure
 * daemonset
     * A daemonset that will help you auto deploy the plugins
 * plugins/microsoft.com~iscsi.cmd
     * All powershell files needed for iscsi plugin
     * When deploying must add iscsiHelper.exe
+* plugins/microsoft.com~wsfc-pdr.cmd
+    * All powershell files needed for WSFC-PDR plugin
 * plugins/microsoft.com~smb.cmd
     * All files for smb plugin
 * sample_yamls
