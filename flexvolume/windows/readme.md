@@ -50,6 +50,13 @@ To get logs for the plugin run `Get-EventLog -LogName Application -Source Kube* 
     * Install the failover cluster cmdlets
     * Run kubelet with an account that is administrator in the failover cluster
 
+* vhd - Ability to mount VHD for hyper-v isolated pods (Proof of Concept)
+    * Plugin does not work for normal pods (only hyper-v isolated)
+    * Plugin does not correctly fence storage
+        * Relies on a node that goes down to release locks
+        * Has an issue if your deployment policy does not tear down old pod before deploying new container
+            * this is due to storage can't be mounted 2 different pods at same time
+
 ## Folder structure
 * daemonset
     * A daemonset that will help you auto deploy the plugins
