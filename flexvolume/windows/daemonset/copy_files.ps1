@@ -20,4 +20,6 @@ catch{
     #and overwrite the existing files
 }
 Expand-Archive -Path "$pluginSrc\$filename" -DestinationPath $pluginDest -Force
-copy "$pluginSrc\$versionFile" "$pluginDest\$versionFile" -Force
+
+# the version file seems to mess up plugin enumeration, so leave it out
+#copy "$pluginSrc\$versionFile" "$pluginDest\$versionFile" -Force
