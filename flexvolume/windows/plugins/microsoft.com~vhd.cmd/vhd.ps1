@@ -51,6 +51,15 @@ function mount_command([string]$path, $options)
     $vhdFolderPath = GetVhdFolder $vhdPath
     $s = New-SmbGlobalMapping  -RemotePath $vhdFolderPath -Credential $Credential -persistent $false 2>&1
     Log  $s
+
+    if($options.vhdProvision){
+        $vhdExists = test-path $vhdPath
+        if(-not $vhdExists){
+            DebugLog "Need to create VHD"
+            $a = runhcs.exe create-scratch --destpath $vhdPath 2>&1 
+            DebugLog $a
+        }
+    }
   
     MakeSymLink $path $vhdPath
 }

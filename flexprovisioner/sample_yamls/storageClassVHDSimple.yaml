@@ -1,0 +1,10 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: fast
+provisioner: microsoft.com/windows-server-storage-provisioner
+parameters:
+  #start of SMB parameters
+  smbShareName: \\10.240.0.6\data
+  smbSecret: smb-provisioner-secret
+  vhdProvision: "true"

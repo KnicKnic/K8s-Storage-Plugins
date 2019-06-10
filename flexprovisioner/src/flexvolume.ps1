@@ -47,6 +47,25 @@ function DeleteRemotePath([string]$pathToDelete, [string]$ComputerName, $credent
     } -ArgumentList $pathToDelete -ErrorAction Stop  -credential $credential
     DebugLog "Deleted path"
 }
+function GetFileParent([string]$filePath)
+{
+    $filePath.substring(0,$filePath.LastIndexOf('\'))
+}
+function DeleteRemoteFile([string]$pathToDelete, [string]$ComputerName, $credential = $null)
+{
+    DebugLog "deleting $path"
+    RemotelyInvoke -ComputerName $ComputerName -ScriptBlock {
+        param($path)
+        if(test-path $path){
+            $empty = del $path -ErrorAction Stop 2>&1 
+        }
+        else {
+            $parentPath = GetFileParent $path
+            $empty = Resolve-Path $parentPath -ErrorAction Stop
+        }
+    } -ArgumentList $pathToDelete -ErrorAction Stop  -credential $credential
+    DebugLog "Deleted file"
+}
 function EnsureRemotePathExists([string]$path, [string]$ComputerName, $credential = $null)
 {
     DebugLog "Ensuring $path exists on server $ComputerName"

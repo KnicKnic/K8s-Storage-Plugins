@@ -16,6 +16,10 @@ function delete_command($options)
     {
         return delete_iscsi $options
     }
+    elseif($options.volume.spec.flexVolume.driver -eq "microsoft.com/vhd.cmd")
+    {
+        return delete_vhd $options
+    }
     else 
     {
         if($options.volume.spec.flexVolume.options.s2dShareServer)
@@ -37,6 +41,10 @@ function provision_command($options)
     if($noReadWriteMany -and $(supports_iscsi $options))
     {
         return provision_iscsi $options
+    }
+    elseif($noReadWriteMany -and $(supports_vhd $options))
+    {
+        return provision_vhd $options
     }
     elseif (supports_s2d $options)
     {
